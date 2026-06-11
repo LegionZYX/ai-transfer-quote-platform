@@ -1,7 +1,10 @@
 node_modules/
 dist/
+.npm-cache/
 .vercel/
 *.log
 verification-*.png
+
+.vercel
 
 .vercel

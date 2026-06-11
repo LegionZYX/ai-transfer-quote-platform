@@ -61,7 +61,16 @@ After the customer generates or sends a demand summary, the interface should mak
 
 ## Admin Configuration
 
-The MVP admin area is protected by a lightweight administrator login. This is a frontend MVP gate, not a replacement for production server-side authentication. Credentials can be provided through Vercel environment variables:
+The MVP admin area is protected by a lightweight administrator login and is only exposed on an admin host. Public navigation must not contain an admin configuration link.
+
+Production host rules:
+
+- Public site: normal project domain.
+- Admin site: a hostname starting with `admin.` or `admin-`.
+- Direct `/admin` on the public production domain should not expose the admin console.
+- Local development can still use `/admin` for testing.
+
+This is a frontend MVP gate, not a replacement for production server-side authentication. Credentials can be provided through Vercel environment variables:
 
 - `VITE_ADMIN_USER`
 - `VITE_ADMIN_PASSWORD`
@@ -144,6 +153,7 @@ Before deployment, verify:
 
 - Build succeeds.
 - Admin page requires login before price configuration is shown.
+- Admin page is reached from an admin hostname, not a visible public navigation link.
 - Wrong admin credentials are rejected.
 - Correct admin credentials open the configuration page.
 - Admin logout returns to the login page.

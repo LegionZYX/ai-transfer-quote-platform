@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
-  Bot,
   Building2,
   CalendarDays,
   Check,
@@ -20,21 +19,36 @@ import {
   Save,
   Search,
   Settings,
-  SlidersHorizontal,
   ShieldCheck,
   Sparkles,
   Zap
 } from "lucide-react";
 import { categories, defaultProducts } from "./data/catalog";
 
-const PRODUCTS_KEY = "ai-transfer-products-v1";
+const PRODUCTS_KEY = "ai-transfer-products-v5";
 const HISTORY_KEY = "ai-transfer-update-history-v1";
 const TELEGRAM_KEY = "ai-transfer-telegram-v1";
 const ADMIN_SESSION_KEY = "ai-transfer-admin-session-v1";
 const ADMIN_USER = import.meta.env.VITE_ADMIN_USER || "admin";
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "aitransfer2026";
+const DEFAULT_TELEGRAM_USERNAME = "legionxyz";
+const LEGACY_TELEGRAM_USERNAMES = ["AITransfer", "sanndpas"];
+const DEFAULT_TELEGRAM_MESSAGE = "你好，我想咨询 AI 资源报价。";
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+function isAdminHost() {
+  if (typeof window === "undefined") return false;
+  const hostname = window.location.hostname.toLowerCase();
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  if (isLocal) return window.location.pathname.replace(/\/+$/, "").endsWith("/admin");
+  return hostname.startsWith("admin.") || hostname.startsWith("admin-");
+}
+
+function getPathView() {
+  if (typeof window === "undefined") return "home";
+  return isAdminHost() ? "admin" : "home";
+}
 
 function readStorage(key, fallback) {
   try {
@@ -58,33 +72,107 @@ function getPublicPrice(product) {
   return product.showPrice ? product.publicPrice : "需咨询确认";
 }
 
-function buildTelegramText({ category, product, demand }) {
+function buildTelegramText({ category, products, demand }) {
+  const selectedProducts = products.length ? products : [];
+  const productText = selectedProducts.length
+    ? selectedProducts.map((product) => product.name).join(" / ")
+    : "未选择";
+  const priceText = selectedProducts.length
+    ? selectedProducts.map((product) => `${product.name}：${getPublicPrice(product)}`).join("；")
+    : "未选择";
+
   return [
     "你好，我想咨询 AI 资源报价。",
     "",
     `分类：${category?.label ?? "未选择"}`,
-    `产品：${product?.name ?? "未选择"}`,
+    `产品：${productText}`,
     `预计用量：${demand.usage || "未填写"}`,
     `使用场景：${demand.scenario || "未填写"}`,
     `公司签约：${demand.contract || "不确定"}`,
     `官方账号需求：${demand.officialAccount || "不确定"}`,
     `海外权限：${demand.overseas || "不确定"}`,
-    `参考价格：${getPublicPrice(product)}`,
+    `参考价格：${priceText}`,
     `其他说明：${demand.notes || "无"}`,
     "",
     "请帮我确认具体报价和开通方式。"
   ].join("\n");
 }
 
+function normalizeTelegramUsername(value) {
+  return value
+    .trim()
+    .replace(/^@/, "")
+    .replace(/^https?:\/\/t\.me\//, "")
+    .replace(/[/?#].*$/, "");
+}
+
+function buildTelegramHref(text, username) {
+  const target = normalizeTelegramUsername(username);
+
+  if (target) return `https://t.me/${target}?text=${encodeURIComponent(text)}`;
+
+  return `https://t.me/share/url?url=${encodeURIComponent("https://aitransfer.cyou")}&text=${encodeURIComponent(text)}`;
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall back for browsers or embedded views that block Clipboard API writes.
+    }
+  }
+
+  const editor = document.querySelector(".telegram-editor");
+  if (editor) {
+    editor.focus();
+    editor.select();
+    editor.setSelectionRange(0, editor.value.length);
+
+    try {
+      if (document.execCommand("copy")) return true;
+    } catch {
+      // Try the detached textarea fallback below.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.top = "-9999px";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+
+  try {
+    const copied = document.execCommand("copy");
+    if (!copied && editor) {
+      editor.focus();
+      editor.select();
+      editor.setSelectionRange(0, editor.value.length);
+    }
+    return copied;
+  } finally {
+    document.body.removeChild(textarea);
+  }
+}
+
 function App() {
-  const [activeView, setActiveView] = useState("home");
+  const [activeView, setActiveViewState] = useState(getPathView);
   const [products, setProducts] = useState(() => readStorage(PRODUCTS_KEY, defaultProducts));
   const [history, setHistory] = useState(() => readStorage(HISTORY_KEY, []));
-  const [telegram, setTelegram] = useState(() => readStorage(TELEGRAM_KEY, { username: "AITransfer" }));
+  const [telegram, setTelegram] = useState(() => {
+    const stored = readStorage(TELEGRAM_KEY, { username: DEFAULT_TELEGRAM_USERNAME });
+    const username = LEGACY_TELEGRAM_USERNAMES.includes(stored.username) ? DEFAULT_TELEGRAM_USERNAME : stored.username;
+    return { username: username || DEFAULT_TELEGRAM_USERNAME };
+  });
   const [adminAuthed, setAdminAuthed] = useState(() => window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "ok");
   const [designVersion, setDesignVersion] = useState("premium");
   const [selectedCategory, setSelectedCategory] = useState("pool");
-  const [selectedProductId, setSelectedProductId] = useState("pool-claude");
+  const [selectedProductIds, setSelectedProductIds] = useState(["pool-claude-opus-4-7"]);
   const [demand, setDemand] = useState({
     usage: "",
     scenario: "",
@@ -93,25 +181,61 @@ function App() {
     overseas: "不确定",
     notes: ""
   });
+  const [telegramText, setTelegramText] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   useEffect(() => writeStorage(PRODUCTS_KEY, products), [products]);
   useEffect(() => writeStorage(HISTORY_KEY, history), [history]);
   useEffect(() => writeStorage(TELEGRAM_KEY, telegram), [telegram]);
 
+  useEffect(() => {
+    const handlePopState = () => setActiveViewState(getPathView());
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const listedProducts = useMemo(() => products.filter((product) => product.isListed), [products]);
   const category = categoryById(selectedCategory);
-  const categoryProducts = listedProducts.filter((product) => product.category === selectedCategory);
-  const product = products.find((item) => item.id === selectedProductId) ?? categoryProducts[0];
-  const telegramText = buildTelegramText({ category, product, demand });
-  const telegramHref = `https://t.me/share/url?url=${encodeURIComponent("https://aitransfer.cyou")}&text=${encodeURIComponent(telegramText)}`;
+  const selectedProducts = useMemo(
+    () =>
+      selectedProductIds
+        .map((productId) => products.find((item) => item.id === productId))
+        .filter(Boolean),
+    [products, selectedProductIds]
+  );
+  const generatedTelegramText = useMemo(
+    () => buildTelegramText({ category, products: selectedProducts, demand }),
+    [category, selectedProducts, demand]
+  );
+  const telegramHref = buildTelegramHref(telegramText || generatedTelegramText, telegram.username);
+  const homeTelegramHref = buildTelegramHref(DEFAULT_TELEGRAM_MESSAGE, telegram.username);
+
+  useEffect(() => {
+    setTelegramText(generatedTelegramText);
+    setCopied(false);
+    setCopyFailed(false);
+  }, [generatedTelegramText]);
+
+  function setActiveView(view) {
+    if (isAdminHost()) {
+      setActiveViewState("admin");
+      return;
+    }
+
+    setActiveViewState(view);
+
+    if (window.location.pathname !== "/") {
+      window.history.pushState({}, "", "/");
+    }
+  }
 
   function selectCategory(categoryId, productId) {
     const nextProduct = productId
       ? listedProducts.find((item) => item.id === productId)
       : listedProducts.find((item) => item.category === categoryId);
     setSelectedCategory(categoryId);
-    if (nextProduct) setSelectedProductId(nextProduct.id);
+    setSelectedProductIds(nextProduct ? [nextProduct.id] : []);
     setActiveView("quote");
   }
 
@@ -163,9 +287,13 @@ function App() {
   }
 
   async function copyTelegramText() {
-    await navigator.clipboard.writeText(telegramText);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+    const ok = await copyTextToClipboard(telegramText);
+    setCopied(ok);
+    setCopyFailed(!ok);
+    window.setTimeout(() => {
+      setCopied(false);
+      setCopyFailed(false);
+    }, 1600);
   }
 
   function handleAdminLogin(username, password) {
@@ -195,6 +323,7 @@ function App() {
           <Home
             designVersion={designVersion}
             products={listedProducts}
+            telegramHref={homeTelegramHref}
             setDesignVersion={setDesignVersion}
             onQuote={selectCategory}
             setActiveView={setActiveView}
@@ -205,14 +334,17 @@ function App() {
             categories={categories}
             products={listedProducts}
             selectedCategory={selectedCategory}
-            selectedProductId={selectedProductId}
+            selectedProductIds={selectedProductIds}
             demand={demand}
             telegramHref={telegramHref}
             telegramText={telegramText}
+            generatedTelegramText={generatedTelegramText}
             copied={copied}
+            copyFailed={copyFailed}
             setDemand={setDemand}
+            setTelegramText={setTelegramText}
             setSelectedCategory={selectCategory}
-            setSelectedProductId={setSelectedProductId}
+            setSelectedProductIds={setSelectedProductIds}
             copyTelegramText={copyTelegramText}
           />
         )}
@@ -239,9 +371,9 @@ function App() {
 function Header({ activeView, designVersion, setActiveView, setDesignVersion }) {
   const navItems = [
     ["home", "首页"],
-    ["quote", "寻找报价"],
-    ["admin", "后台配置"]
+    ["quote", "寻找报价"]
   ];
+  const adminMode = activeView === "admin";
 
   return (
     <header className="topbar">
@@ -252,6 +384,12 @@ function Header({ activeView, designVersion, setActiveView, setDesignVersion }) 
           <small>Quote Platform</small>
         </span>
       </button>
+      {adminMode ? (
+        <div className="admin-domain-badge">
+          <LockKeyhole size={16} />
+          后台域名访问
+        </div>
+      ) : (
       <nav aria-label="主导航">
         <div className="version-switch" aria-label="版本切换">
           <button
@@ -286,30 +424,116 @@ function Header({ activeView, designVersion, setActiveView, setDesignVersion }) 
           </button>
         ))}
       </nav>
+      )}
     </header>
   );
 }
 
-function Home({ designVersion, products, setDesignVersion, onQuote, setActiveView }) {
+function Home({ designVersion, products, telegramHref, setDesignVersion, onQuote, setActiveView }) {
+  const [wechatProduct, setWechatProduct] = useState(null);
+
+  function handleConsult(categoryId, productId) {
+    const product = products.find((item) => item.id === productId);
+
+    if (product?.category === "accounts") {
+      setWechatProduct(product);
+      return;
+    }
+
+    onQuote(categoryId, productId);
+  }
+
   return designVersion === "market" ? (
-    <MarketDashboardHome products={products} setDesignVersion={setDesignVersion} onQuote={onQuote} setActiveView={setActiveView} />
+    <>
+      <MarketDashboardHome products={products} telegramHref={telegramHref} setDesignVersion={setDesignVersion} onQuote={handleConsult} setActiveView={setActiveView} />
+      {wechatProduct && <WechatConsultModal product={wechatProduct} onClose={() => setWechatProduct(null)} />}
+    </>
   ) : (
-    <PremiumBrokerHome products={products} setDesignVersion={setDesignVersion} onQuote={onQuote} setActiveView={setActiveView} />
+    <>
+      <PremiumBrokerHome products={products} telegramHref={telegramHref} setDesignVersion={setDesignVersion} onQuote={handleConsult} setActiveView={setActiveView} />
+      {wechatProduct && <WechatConsultModal product={wechatProduct} onClose={() => setWechatProduct(null)} />}
+    </>
   );
 }
 
-function PremiumBrokerHome({ products, setDesignVersion, onQuote, setActiveView }) {
-  const [activeBusiness, setActiveBusiness] = useState("enterprise");
+function WechatConsultModal({ product, onClose }) {
+  useEffect(() => {
+    function handleKeydown(event) {
+      if (event.key === "Escape") onClose();
+    }
+
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, [onClose]);
+
+  return (
+    <div className="wechat-modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section
+        className="wechat-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="wechat-modal-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <button className="wechat-modal-close" type="button" onClick={onClose} aria-label="关闭微信弹窗">
+          ×
+        </button>
+        <div className="wechat-modal-copy">
+          <span>添加微信咨询</span>
+          <h2 id="wechat-modal-title">{product.name}</h2>
+          <p>扫码添加微信，发送商品名称即可确认库存、开通方式和售后说明。</p>
+          <strong>{getPublicPrice(product)}</strong>
+        </div>
+        <div className="wechat-qr-frame">
+          <img src="/wechat-qr.png" alt="微信二维码" />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PremiumBrokerHome({ products, telegramHref, setDesignVersion, onQuote, setActiveView }) {
+  const [activeBusiness, setActiveBusiness] = useState("pool");
+  const [activeSubCategory, setActiveSubCategory] = useState("claude-code-pool");
+  const [catalogSearch, setCatalogSearch] = useState("");
   const activeCategory = categoryById(activeBusiness);
   const activeProducts = products.filter((product) => product.category === activeBusiness);
-  const activeProduct = activeProducts[0];
-  const premiumRows = [
-    ["pool", Building2, "稳定号池", "批量供应", "长期维护"],
-    ["enterprise", Globe2, "企业级方案", "高并发支持", "合规稳定"],
-    ["video", Layers, "视频生成", "高性能线路", "成本优化"],
-    ["domestic", Cpu, "国产模型", "多种选择", "灵活接入"],
-    ["accounts", KeyRound, "账号开护", "KYC 支持", "安全合规"]
+  const catalogRows = [
+    { id: "pool", icon: Building2, badge: "稳定号池" },
+    { id: "enterprise", icon: Globe2, badge: "企业级方案" },
+    { id: "video", icon: Layers, badge: "视频生成" },
+    { id: "domestic", icon: Cpu, badge: "国产模型" },
+    { id: "accounts", icon: KeyRound, badge: "账号开护" }
   ];
+  const activeCatalogRow = catalogRows.find((item) => item.id === activeBusiness) ?? catalogRows[0];
+  const ActiveIcon = activeCatalogRow.icon;
+  const subCategories = Array.from(
+    activeProducts.reduce((items, product) => {
+      const key = product.subCategory || "default";
+      if (!items.has(key)) {
+        items.set(key, product.subCategoryLabel || product.subCategory || activeCategory?.label);
+      }
+      return items;
+    }, new Map())
+  ).map(([id, label]) => ({ id, label }));
+  const scopedProducts = activeSubCategory
+    ? activeProducts.filter((product) => (product.subCategory || "default") === activeSubCategory)
+    : activeProducts;
+  const searchTerm = catalogSearch.trim().toLowerCase();
+  const visibleCatalogProducts = searchTerm
+    ? scopedProducts.filter((product) =>
+        [product.name, product.publicPrice, product.customerDescription, product.minimumRequirement]
+          .join(" ")
+          .toLowerCase()
+          .includes(searchTerm)
+      )
+    : scopedProducts;
+  const activeProduct = visibleCatalogProducts[0] ?? scopedProducts[0] ?? activeProducts[0];
+  const firstSubCategory = activeProducts[0]?.subCategory || "default";
+
+  useEffect(() => {
+    setActiveSubCategory(firstSubCategory);
+  }, [activeBusiness, firstSubCategory]);
 
   return (
     <div className="home-surface premium-surface">
@@ -329,7 +553,7 @@ function PremiumBrokerHome({ products, setDesignVersion, onQuote, setActiveView 
               寻找报价
               <ArrowRight size={18} />
             </button>
-            <a className="dark-outline-button" href="https://t.me/share/url?url=https%3A%2F%2Faitransfer.cyou&text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E5%92%A8%E8%AF%A2%20AI%20%E8%B5%84%E6%BA%90%E6%8A%A5%E4%BB%B7%E3%80%82" target="_blank" rel="noreferrer">
+            <a className="dark-outline-button" href={telegramHref} target="_blank" rel="noreferrer">
               <MessageCircle size={18} />
               Telegram 咨询
             </a>
@@ -375,46 +599,101 @@ function PremiumBrokerHome({ products, setDesignVersion, onQuote, setActiveView 
       </section>
 
       <section className="premium-resources">
-        <div className="section-heading inverse">
-          <span>五大资源分类</span>
-          <h2>覆盖主流 AI 模型与相关服务</h2>
-        </div>
-        <div className="premium-row-list">
-          {categories.map((categoryItem, index) => {
-            const [categoryId, Icon, traitA, traitB, traitC] = premiumRows[index];
-            return (
-              <button
-                className={activeBusiness === categoryId ? "premium-resource-row active" : "premium-resource-row"}
-                type="button"
-                key={categoryItem.id}
-                onClick={() => setActiveBusiness(categoryId)}
-              >
-                <Icon size={24} />
-                <strong>{categoryItem.label}</strong>
-                <span>{categoryItem.summary}</span>
-                <em>{traitA}</em>
-                <em>{traitB}</em>
-                <em>{traitC}</em>
-                <ArrowRight size={18} />
-              </button>
-            );
-          })}
-        </div>
-        <div className="premium-business-detail">
-          <div>
-            <span>当前业务</span>
-            <h3>{activeCategory?.label}</h3>
-            <p>{activeCategory?.description}</p>
+        <aside className="catalog-sidebar">
+          <div className="catalog-title">
+            <span>类别</span>
+            <h2>商品分类</h2>
           </div>
-          <div className="business-product-list">
-            {activeProducts.map((product) => (
-              <button type="button" key={product.id} onClick={() => onQuote(activeBusiness, product.id)}>
-                <strong>{product.name}</strong>
-                <span>{getPublicPrice(product)}</span>
-              </button>
+          <div className="catalog-category-list">
+            {categories.map((categoryItem) => {
+              const meta = catalogRows.find((item) => item.id === categoryItem.id) ?? catalogRows[0];
+              const Icon = meta.icon;
+              const count = products.filter((product) => product.category === categoryItem.id).length;
+
+              return (
+                <button
+                  className={activeBusiness === categoryItem.id ? "catalog-category active" : "catalog-category"}
+                  type="button"
+                  key={categoryItem.id}
+                  onClick={() => {
+                    setActiveBusiness(categoryItem.id);
+                    setCatalogSearch("");
+                  }}
+                >
+                  <span className="catalog-category-icon"><Icon size={19} /></span>
+                  <strong>{categoryItem.label}</strong>
+                  <em>{count}</em>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <section className="catalog-content">
+          <div className="catalog-content-head">
+            <div>
+              <span>目录</span>
+              <h2>{activeCategory?.label}</h2>
+              <p>{activeCategory?.summary}</p>
+              {subCategories.length > 1 && (
+                <div className="catalog-subcategory-list" aria-label={`${activeCategory?.label}子分类`}>
+                  {subCategories.map((item) => (
+                    <button
+                      className={activeSubCategory === item.id ? "catalog-subcategory active" : "catalog-subcategory"}
+                      type="button"
+                      key={item.id}
+                      onClick={() => {
+                        setActiveSubCategory(item.id);
+                        setCatalogSearch("");
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="catalog-search">
+              <Search size={20} />
+              <input
+                value={catalogSearch}
+                onChange={(event) => setCatalogSearch(event.target.value)}
+                placeholder="搜索资源关键词"
+                aria-label="搜索资源关键词"
+              />
+            </div>
+          </div>
+
+          <div className="catalog-table">
+            <div className="catalog-table-head">
+              <span>产品 / 服务</span>
+              <span>参考价格</span>
+              <span>操作</span>
+            </div>
+            {visibleCatalogProducts.map((product) => (
+              <article className="catalog-row" key={product.id}>
+                <span className="catalog-product-icon"><ActiveIcon size={22} /></span>
+                <div className="catalog-product-main">
+                  <strong>{product.name}</strong>
+                  <p>{product.customerDescription}</p>
+                  <div className="catalog-tags">
+                    <span>{activeCatalogRow.badge}</span>
+                    <span>{product.minimumRequirement}</span>
+                  </div>
+                </div>
+                <b>{getPublicPrice(product)}</b>
+                <button type="button" onClick={() => onQuote(activeBusiness, product.id)}>
+                  咨询
+                </button>
+              </article>
             ))}
+            {visibleCatalogProducts.length === 0 && (
+              <div className="catalog-empty">
+                没有匹配的资源
+              </div>
+            )}
           </div>
-        </div>
+        </section>
       </section>
 
       <section className="premium-footer-band">
@@ -430,10 +709,10 @@ function PremiumBrokerHome({ products, setDesignVersion, onQuote, setActiveView 
   );
 }
 
-function MarketDashboardHome({ products, setDesignVersion, onQuote, setActiveView }) {
+function MarketDashboardHome({ products, telegramHref, setDesignVersion, onQuote, setActiveView }) {
   const [activeBusiness, setActiveBusiness] = useState("pool");
   const activeProducts = products.filter((product) => product.category === activeBusiness);
-  const [activeProductId, setActiveProductId] = useState(activeProducts[0]?.id ?? "pool-claude");
+  const [activeProductId, setActiveProductId] = useState(activeProducts[0]?.id ?? "pool-claude-opus-4-7");
   const activeProduct = products.find((product) => product.id === activeProductId) ?? activeProducts[0];
 
   useEffect(() => {
@@ -457,7 +736,7 @@ function MarketDashboardHome({ products, setDesignVersion, onQuote, setActiveVie
               <Zap size={18} />
               寻找报价
             </button>
-            <a className="blue-outline-button" href="https://t.me/share/url?url=https%3A%2F%2Faitransfer.cyou&text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%83%B3%E5%92%A8%E8%AF%A2%20AI%20%E8%B5%84%E6%BA%90%E6%8A%A5%E4%BB%B7%E3%80%82" target="_blank" rel="noreferrer">
+            <a className="blue-outline-button" href={telegramHref} target="_blank" rel="noreferrer">
               <MessageCircle size={18} />
               Telegram 咨询
             </a>
@@ -495,14 +774,12 @@ function MarketDashboardHome({ products, setDesignVersion, onQuote, setActiveVie
           <div className="board-toolbar">
             <strong>资源市场</strong>
             <span>实时参考区间 · 价格每日更新</span>
-            <button type="button"><SlidersHorizontal size={16} />全部状态</button>
           </div>
           <div className="market-table">
             <div className="market-table-head">
               <span>产品 / 服务</span>
               <span>简介</span>
               <span>参考价格</span>
-              <span>价格可见性</span>
               <span>操作</span>
             </div>
             {activeProducts.map((product) => (
@@ -514,7 +791,6 @@ function MarketDashboardHome({ products, setDesignVersion, onQuote, setActiveVie
                 <strong>{product.name}</strong>
                 <span>{product.customerDescription}</span>
                 <b>{getPublicPrice(product)}</b>
-                <em className={product.showPrice ? "visible" : "hidden"}>{product.showPrice ? "可显示" : "隐藏价"}</em>
                 <button type="button" onClick={(event) => {
                   event.stopPropagation();
                   onQuote(product.category, product.id);
@@ -558,7 +834,7 @@ function MarketDashboardHome({ products, setDesignVersion, onQuote, setActiveVie
         <span><CalendarDays size={20} />价格每日更新</span>
         <span><ShieldCheck size={20} />隐私安全保障</span>
         <span><MessageCircle size={20} />支持 Telegram 对接</span>
-        <span><Settings size={20} />后台灵活配置</span>
+        <span><Settings size={20} />配置灵活维护</span>
         <button className="version-link" type="button" onClick={() => setDesignVersion("premium")}>
           查看高端经纪版
         </button>
@@ -571,19 +847,34 @@ function QuoteFinder({
   categories: categoryItems,
   products,
   selectedCategory,
-  selectedProductId,
+  selectedProductIds,
   demand,
   telegramHref,
   telegramText,
+  generatedTelegramText,
   copied,
+  copyFailed,
   setDemand,
+  setTelegramText,
   setSelectedCategory,
-  setSelectedProductId,
+  setSelectedProductIds,
   copyTelegramText
 }) {
   const visibleProducts = products.filter((item) => item.category === selectedCategory);
-  const selectedProduct = products.find((item) => item.id === selectedProductId) ?? visibleProducts[0];
+  const selectedProducts = selectedProductIds
+    .map((productId) => products.find((item) => item.id === productId))
+    .filter((product) => product?.category === selectedCategory);
   const selectedCategoryItem = categoryById(selectedCategory);
+
+  function toggleProduct(productId) {
+    setSelectedProductIds((current) => {
+      if (current.includes(productId)) {
+        return current.filter((id) => id !== productId);
+      }
+
+      return [...current.filter((id) => visibleProducts.some((product) => product.id === id)), productId];
+    });
+  }
 
   return (
     <section className="workspace-layout">
@@ -614,11 +905,12 @@ function QuoteFinder({
           <div className="product-pills">
             {visibleProducts.map((item) => (
               <button
-                className={selectedProduct?.id === item.id ? "pill active" : "pill"}
+                className={selectedProductIds.includes(item.id) ? "pill active" : "pill"}
                 type="button"
                 key={item.id}
-                onClick={() => setSelectedProductId(item.id)}
+                onClick={() => toggleProduct(item.id)}
               >
+                {selectedProductIds.includes(item.id) && <Check size={15} />}
                 {item.name}
               </button>
             ))}
@@ -674,7 +966,7 @@ function QuoteFinder({
         <div className="sticky-panel">
           <div className="plan-card">
             <span className="tag">参考方案</span>
-            <h2>{selectedProduct?.name ?? "请选择产品"}</h2>
+            <h2>{selectedProducts.length ? `${selectedProducts.length} 个产品已选` : "请选择产品"}</h2>
             <dl>
               <div>
                 <dt>分类</dt>
@@ -682,21 +974,21 @@ function QuoteFinder({
               </div>
               <div>
                 <dt>参考价格</dt>
-                <dd>{getPublicPrice(selectedProduct)}</dd>
-              </div>
-              <div>
-                <dt>适合场景</dt>
-                <dd>{selectedProduct?.customerDescription}</dd>
-              </div>
-              <div>
-                <dt>签约要求</dt>
-                <dd>{selectedProduct?.contractRequirement}</dd>
-              </div>
-              <div>
-                <dt>权限说明</dt>
-                <dd>{selectedProduct?.permissionRequirement}</dd>
+                <dd>{selectedProducts.length ? "按所选产品分别确认" : "请选择产品"}</dd>
               </div>
             </dl>
+            <div className="selected-plan-list">
+              {selectedProducts.map((product) => (
+                <article key={product.id}>
+                  <div>
+                    <strong>{product.name}</strong>
+                    <span>{getPublicPrice(product)}</span>
+                  </div>
+                  <p>{product.customerDescription}</p>
+                  <small>签约：{product.contractRequirement} · 权限：{product.permissionRequirement}</small>
+                </article>
+              ))}
+            </div>
           </div>
 
           <div className="telegram-box">
@@ -704,11 +996,20 @@ function QuoteFinder({
               <MessageCircle size={18} />
               <strong>Telegram 咨询文案</strong>
             </div>
-            <pre>{telegramText}</pre>
+            <textarea
+              className="telegram-editor"
+              value={telegramText}
+              onChange={(event) => setTelegramText(event.target.value)}
+              aria-label="可编辑的 Telegram 咨询文案"
+            />
             <div className="action-row">
               <button className="ghost-button" type="button" onClick={copyTelegramText}>
                 {copied ? <Check size={17} /> : <Copy size={17} />}
-                {copied ? "已复制" : "复制文案"}
+                {copied ? "已复制" : copyFailed ? "复制失败" : "复制文案"}
+              </button>
+              <button className="ghost-button" type="button" onClick={() => setTelegramText(generatedTelegramText)}>
+                <RefreshCw size={17} />
+                恢复默认
               </button>
               <a className="primary-button" href={telegramHref} target="_blank" rel="noreferrer">
                 <MessageCircle size={17} />
@@ -790,7 +1091,7 @@ function AdminLogin({ onLogin }) {
           <ShieldCheck size={17} />
           登录后台
         </button>
-        <p className="login-hint">MVP 默认账号：admin；默认密码可在 Vercel 环境变量中覆盖。</p>
+        <p className="login-hint">后台仅在管理员域名开放。账号密码可通过 Vercel 环境变量覆盖。</p>
       </form>
     </section>
   );
@@ -832,7 +1133,7 @@ function Admin({ products, history, telegram, updateProduct, setTelegram, resetD
           <input
             value={telegram.username}
             onChange={(event) => setTelegram({ username: event.target.value })}
-            placeholder="例如：AITransfer"
+            placeholder="例如：legionxyz"
           />
         </label>
         <button className="ghost-button" type="button" onClick={resetDemoData}>

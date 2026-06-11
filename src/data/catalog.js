@@ -1,323 +1,226 @@
+const SOURCE_DATE = "2026-06-04";
+
 export const categories = [
   {
     id: "pool",
     label: "号池类",
-    summary: "Claude / OpenAI / Gemini",
-    description: "适合 API 调用、开发工具、批量消耗和稳定号池资源。"
+    summary: "Claude Code号池 / OpenAI号池 / Gemini Vertex T3",
+    description: "适合 Claude Code、OpenAI、Gemini 等模型号池消耗，按模型和通道折扣确认。"
   },
   {
     id: "enterprise",
     label: "企业类",
-    summary: "AWS Bedrock / 官方账号 Key / 官方中转 / 速刷线路",
-    description: "适合企业接入、官方资源、高稳定调用和定制结算。"
+    summary: "速刷线路 / 官方账号 / 企业稳定中转线路",
+    description: "适合官方账号、AWS / Azure / Vertex 资源、企业中转和高折扣速刷线路。"
   },
   {
     id: "video",
-    label: "视频类",
-    summary: "Seedance2 满血 / 海外满血 / 残血线路",
-    description: "适合视频生成、海外权限、批量内容生产和线路匹配。"
+    label: "Seedance2.0",
+    summary: "满血线路 / 残血线路 / 海外满血线路",
+    description: "适合 Seedance2.0 视频生成，根据满血、残血、海外权限和签约要求匹配线路。"
   },
   {
     id: "domestic",
     label: "国内模型",
-    summary: "GLM / Kimi / MiniMax / Qwen / Mimo",
-    description: "适合中文业务、国内模型调用和低成本 Token 消耗。"
+    summary: "GLM / Kimi / MiniMax / Mimo / Qwen",
+    description: "适合中文业务、国内模型调用和按上下文长度分段的 Token 消耗。"
   },
   {
     id: "accounts",
     label: "账号服务",
-    summary: "Claude Code / Codex / KYC",
-    description: "适合开发者账号、AI 编程工具、认证与平台账号开通。"
+    summary: "ChatGPT / Claude / Gemini / SuperGroks",
+    description: "适合成品号、代充、会员认证和主流 AI 账号服务。"
   }
 ];
 
-export const defaultProducts = [
-  {
-    id: "pool-claude",
-    category: "pool",
-    name: "Claude",
+function product({
+  id,
+  category,
+  subCategory,
+  subCategoryLabel,
+  name,
+  publicPrice,
+  customerDescription,
+  minimumRequirement,
+  contractRequirement = "按具体账号/线路确认",
+  permissionRequirement = "按资源可用性确认",
+  internalCost = "",
+  priceType = "custom",
+  adminNote = ""
+}) {
+  return {
+    id,
+    category,
+    subCategory,
+    subCategoryLabel,
+    name,
     isListed: true,
     showPrice: true,
-    publicPrice: "58折参考，按模型和用量确认",
-    internalCost: "后台成本按当天号池折扣维护",
-    priceType: "discount",
-    minimumRequirement: "适合持续消耗或工具型调用",
-    contractRequirement: "普通需求无需签约，大量消耗可单独确认",
-    permissionRequirement: "无特殊权限",
-    customerDescription: "适合 Claude API、Claude Code 周边调用和团队开发场景。",
-    adminNote: "不要在前台展示内部折扣。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "pool-openai",
+    publicPrice,
+    internalCost,
+    priceType,
+    minimumRequirement,
+    contractRequirement,
+    permissionRequirement,
+    customerDescription,
+    adminNote,
+    updatedAt: SOURCE_DATE
+  };
+}
+
+const poolRows = [
+  ["pool-claude-opus-4-7", "claude-code-pool", "Claude Code号池", "claude-opus-4-7", "2.11折", "官方输入 $5/M，输出 $25/M"],
+  ["pool-claude-opus-4-6", "claude-code-pool", "Claude Code号池", "claude-opus-4-6", "2.11折", "官方输入 $5/M，输出 $25/M"],
+  ["pool-claude-sonnet-4-6", "claude-code-pool", "Claude Code号池", "claude-sonnet-4-6", "2.11折", "官方输入 $3/M，输出 $15/M"],
+  ["pool-claude-opus-4-5", "claude-code-pool", "Claude Code号池", "claude-opus-4-5-20251101", "2.11折", "官方输入 $5/M，输出 $25/M"],
+  ["pool-claude-haiku-4-5", "claude-code-pool", "Claude Code号池", "claude-haiku-4-5-20251001", "2.11折", "官方输入 $1/M，输出 $5/M"],
+  ["pool-claude-sonnet-4-5", "claude-code-pool", "Claude Code号池", "claude-sonnet-4-5-20250929", "2.11折", "官方输入 $3/M，输出 $15/M"],
+  ["pool-openai-gpt-5-5", "openai-pool", "OpenAI号池", "gpt-5.5", "0.42折", "官方输入 $5/M，输出 $30/M"],
+  ["pool-openai-gpt-5-4", "openai-pool", "OpenAI号池", "gpt-5.4", "0.42折", "官方输入 $2.5/M，输出 $15/M"],
+  ["pool-openai-gpt-5-4-mini", "openai-pool", "OpenAI号池", "gpt-5.4-mini", "0.42折", "官方输入 $0.75/M，输出 $4.5/M"],
+  ["pool-openai-gpt-5-3-codex", "openai-pool", "OpenAI号池", "gpt-5.3-codex", "0.42折", "官方输入 $1.75/M，输出 $14/M"],
+  ["pool-openai-gpt-5-3-codex-spark", "openai-pool", "OpenAI号池", "gpt-5.3-codex-spark", "0.42折", "官方输入 $2.5/M，输出 $15/M"],
+  ["pool-gemini-2-5-flash", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-2.5-flash", "5折", "官方输入 $0.3/M，输出 $2.5/M"],
+  ["pool-gemini-2-5-flash-image", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-2.5-flash-image-preview(Nano Banana)", "5折", "官方输入 $0.039/M，图片按项确认"],
+  ["pool-gemini-2-5-pro", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-2.5-pro", "5折", "官方输入 $1.25/M，输出 $10/M"],
+  ["pool-gemini-3-flash-preview", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-3-flash-preview", "5折", "官方输入 $0.5/M，输出 $3/M"],
+  ["pool-gemini-3-pro-image", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-3-pro-image-preview(Nano Banana Pro)", "5折", "官方输入 $0.2/M，图片按项确认"],
+  ["pool-gemini-3-pro-preview", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-3-pro-preview", "5折", "官方输入 $2/M，输出 $12/M"],
+  ["pool-gemini-3-1-pro-preview", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-3.1-pro-preview", "5折", "官方输入 $2/M，输出 $12/M"],
+  ["pool-gemini-3-1-flash-image", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-3.1-flash-image-preview (Nano Banana 2)", "5折", "官方输入 $0.101/M，图片按项确认"]
+].map(([id, subCategory, subCategoryLabel, name, publicPrice, customerDescription]) =>
+  product({
+    id,
     category: "pool",
-    name: "OpenAI",
-    isListed: true,
-    showPrice: true,
-    publicPrice: "43折起，按模型和通道确认",
-    internalCost: "42折成本参考",
+    subCategory,
+    subCategoryLabel,
+    name,
+    publicPrice,
     priceType: "discount",
-    minimumRequirement: "建议说明月消耗规模",
-    contractRequirement: "大量消耗可做企业方案",
-    permissionRequirement: "无特殊权限",
-    customerDescription: "适合 GPT 系列调用、产品接入、批量文本与多模态需求。",
-    adminNote: "速刷线路在企业类单独展示。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "pool-gemini",
-    category: "pool",
-    name: "Gemini",
-    isListed: true,
-    showPrice: true,
-    publicPrice: "43折起，Vertex T3 文本/图片按项确认",
-    internalCost: "按 Vertex T3 当天成本维护",
+    minimumRequirement: subCategoryLabel,
+    contractRequirement: "大量消耗可单独确认",
+    permissionRequirement: subCategory === "claude-code-pool" ? "不能外接，仅限 Claude Code 使用" : "按号池通道可用性确认",
+    customerDescription,
+    internalCost: `源表：模型企业端渠道报价6月4日 / ${subCategoryLabel}`,
+    adminNote: "号池类前台参考价格只显示折扣。"
+  })
+);
+
+const enterpriseProducts = [
+  ["enterprise-fast-claude", "速刷线路", "速刷线路 Claude（AWS BK）", "58折", "走中转"],
+  ["enterprise-fast-openai", "速刷线路", "速刷线路 OpenAI官方", "43折", "走中转"],
+  ["enterprise-fast-gemini", "速刷线路", "速刷线路 Gemini Vertex T3", "43折", "走中转"],
+  ["enterprise-official-openai-small", "官方账号", "官方账号 OpenAI小额", "约5.3折，3.6元人民币等于一刀", "按 6.8 汇率折算"],
+  ["enterprise-official-openai-large", "官方账号", "官方账号 OpenAI大额", "约4.7折，3.2元人民币等于一刀", "按 6.8 汇率折算"],
+  ["enterprise-official-aws-bk", "官方账号", "官方账号 AWS BK账号", "约8.5折，5元人民币等于一刀", "按 6.8 汇率折算"],
+  ["enterprise-official-aws-iam", "官方账号", "官方账号 AWS IAM账号", "8.7折", "按 IAM 权限和区域确认"],
+  ["enterprise-official-gemini", "官方账号", "官方账号 Gemini Vertex T3", "8.6折", "按 Vertex T3 权限确认"],
+  ["enterprise-official-azure", "官方账号", "官方账号 Microsoft Azure", "8折", "按 Azure 资源权限确认"],
+  ["enterprise-relay-claude", "企业稳定中转线路", "企业稳定中转 Claude", "76折", "走中转"],
+  ["enterprise-relay-openai", "企业稳定中转线路", "企业稳定中转 OpenAI", "67折", "走中转 + 官K原厂账号"],
+  ["enterprise-relay-gemini", "企业稳定中转线路", "企业稳定中转 Gemini", "65折", "走中转"]
+].map(([id, subCategoryLabel, name, publicPrice, note]) =>
+  product({
+    id,
+    category: "enterprise",
+    subCategory: subCategoryLabel,
+    subCategoryLabel,
+    name,
+    publicPrice,
     priceType: "discount",
-    minimumRequirement: "图片模型按次数，文本按 Token",
-    contractRequirement: "企业量可单独确认",
-    permissionRequirement: "部分图片模型需确认可用性",
-    customerDescription: "适合 Gemini 文本、图片生成和 Nano Banana 系列需求。",
-    adminNote: "图片模型的次数价格需要每日复核。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "enterprise-bedrock",
-    category: "enterprise",
-    name: "AWS Bedrock",
-    isListed: true,
-    showPrice: false,
-    publicPrice: "按账号区域、模型和消耗定制",
-    internalCost: "需按 AWS 资源确认",
-    priceType: "custom",
-    minimumRequirement: "建议企业客户说明区域和消耗",
-    contractRequirement: "通常需要企业主体或项目说明",
-    permissionRequirement: "按 AWS 区域和模型权限确认",
-    customerDescription: "适合需要官方云资源、稳定接入和企业合规路径的客户。",
-    adminNote: "默认隐藏价格。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "enterprise-official-key",
-    category: "enterprise",
-    name: "官方账号 Key",
-    isListed: true,
-    showPrice: false,
-    publicPrice: "需咨询确认",
-    internalCost: "按账号来源维护",
-    priceType: "custom",
-    minimumRequirement: "说明平台、调用量和开通周期",
-    contractRequirement: "按官方账号类型确认",
-    permissionRequirement: "可能涉及认证和地区限制",
-    customerDescription: "适合需要官方账号 Key、稳定资源归属和可持续管理的企业客户。",
-    adminNote: "价格敏感，默认隐藏。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "enterprise-relay",
-    category: "enterprise",
-    name: "官方中转",
-    isListed: true,
-    showPrice: false,
-    publicPrice: "需咨询确认",
-    internalCost: "43折成本参考",
-    priceType: "discount",
-    minimumRequirement: "建议提供预计日消耗",
+    minimumRequirement: "说明平台、用量和交付周期",
     contractRequirement: "大用量可签约",
-    permissionRequirement: "按通道确认",
-    customerDescription: "适合企业 API 接入、高频调用和稳定中转需求。",
-    adminNote: "前台只展示需咨询。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "enterprise-fast",
-    category: "enterprise",
-    name: "速刷线路",
-    isListed: true,
-    showPrice: true,
-    publicPrice: "Claude 58折 / OpenAI 43折 / Gemini 43折参考",
-    internalCost: "按当天速刷通道维护",
-    priceType: "discount",
-    minimumRequirement: "适合明确消耗节奏的客户",
-    contractRequirement: "普通需求无需签约",
-    permissionRequirement: "走中转，按线路可用性确认",
-    customerDescription: "适合对速度、折扣和中转线路有明确要求的客户。",
-    adminNote: "只放顶层线路，不展开更多模型。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "video-full",
+    permissionRequirement: note,
+    customerDescription: `${subCategoryLabel}资源，${note}。`,
+    internalCost: "源表：模型企业端渠道报价6月4日",
+    adminNote: note
+  })
+);
+
+const videoProducts = [
+  ["video-seedance2-full-1", "满血线路", "Seedance2 第一条满血线路", "9.8折起", "可随用随充", "普通权限"],
+  ["video-seedance2-full-2", "满血线路", "Seedance2 第二条满血线路", "9.5折起", "要求日消耗量3万以上", "普通权限"],
+  ["video-seedance2-limited", "残血线路", "Seedance2 第三条残血线路", "9.2折起", "适合能接受能力限制的客户", "不能过真人库；要求公司签约"],
+  ["video-seedance2-overseas", "海外满血线路", "Seedance2 第四条海外满血线路", "溢价20%起", "需明确海外使用场景", "有海外 NSFW 权限；低审查内容不能回流国内"]
+].map(([id, subCategoryLabel, name, publicPrice, minimumRequirement, permissionRequirement]) =>
+  product({
+    id,
     category: "video",
-    name: "Seedance2 满血",
-    isListed: true,
-    showPrice: true,
-    publicPrice: "9.8折起",
-    internalCost: "第一条满血线路",
-    priceType: "discount",
-    minimumRequirement: "可随用随充",
-    contractRequirement: "按用量确认",
-    permissionRequirement: "普通权限",
-    customerDescription: "适合常规视频生成和需要较完整能力的客户。",
-    adminNote: "来自报价表第一条满血线路。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "video-overseas",
-    category: "video",
-    name: "Seedance2 海外满血",
-    isListed: true,
-    showPrice: true,
-    publicPrice: "官方价溢价20%起",
-    internalCost: "海外满血线路",
-    priceType: "premium",
-    minimumRequirement: "需明确海外使用场景",
-    contractRequirement: "要求公司签约",
-    permissionRequirement: "有海外 NSFW 权限；低审查内容不能回流国内",
-    customerDescription: "适合海外视频生成、特殊权限和更宽松审查需求。",
-    adminNote: "限制说明要完整保留。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "video-limited",
-    category: "video",
-    name: "Seedance2 残血线路",
-    isListed: true,
-    showPrice: true,
-    publicPrice: "9.2折起",
-    internalCost: "第三条残血线路",
-    priceType: "discount",
-    minimumRequirement: "适合能接受能力限制的客户",
-    contractRequirement: "要求公司签约",
-    permissionRequirement: "不能过真人库",
-    customerDescription: "适合成本敏感、可接受部分能力限制的视频需求。",
-    adminNote: "不能过真人库；公司签约。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "domestic-glm",
+    subCategory: subCategoryLabel,
+    subCategoryLabel,
+    name,
+    publicPrice,
+    priceType: publicPrice.includes("溢价") ? "premium" : "discount",
+    minimumRequirement,
+    contractRequirement: permissionRequirement.includes("公司签约") ? "要求公司签约" : "按用量确认",
+    permissionRequirement,
+    customerDescription: `${subCategoryLabel}，${minimumRequirement}。`,
+    internalCost: "源表：模型企业端渠道报价6月4日",
+    adminNote: permissionRequirement
+  })
+);
+
+const domesticProducts = [
+  ["domestic-glm", "GLM", "GLM 5 / 5.1", "5折", "覆盖 glm-5、glm-5.1 的 0<Token≤32K 与 32K<Token≤200K 分段。"],
+  ["domestic-kimi", "Kimi", "Kimi K2.5 / K2.6", "5折", "适合长文本、知识处理和中文内容场景。"],
+  ["domestic-minimax", "MiniMax", "MiniMax-M2.7", "5折", "适合中文应用、内容生成和较低成本调用。"],
+  ["domestic-mimo", "Mimo", "Mimo v2 / v2.5", "5折", "覆盖 mimo-v2-pro、mimo-v2.5-pro 以及 Token Plan。"],
+  ["domestic-qwen", "Qwen", "Qwen 3.5 / 3.6 Plus", "5折", "覆盖 qwen3.5-plus 与 qwen3.6-plus 的 128K、256K、1M 分段。"]
+].map(([id, subCategoryLabel, name, publicPrice, customerDescription]) =>
+  product({
+    id,
     category: "domestic",
-    name: "GLM",
-    isListed: true,
-    showPrice: true,
-    publicPrice: "4-28 元/百万 Tokens 参考，按上下文长度确认",
-    internalCost: "GLM 5/5.1 分段价格",
+    subCategory: subCategoryLabel,
+    subCategoryLabel,
+    name,
+    publicPrice,
     priceType: "token",
-    minimumRequirement: "说明上下文长度和月 Token",
-    contractRequirement: "大用量可企业确认",
-    permissionRequirement: "国内模型常规权限",
-    customerDescription: "适合中文理解、长上下文和国内业务部署。",
-    adminNote: "缓存读取另算，报价时确认。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "domestic-kimi",
-    category: "domestic",
-    name: "Kimi",
-    isListed: true,
-    showPrice: true,
-    publicPrice: "4-27 元/百万 Tokens 参考",
-    internalCost: "Kimi K2.5/K2.6",
-    priceType: "token",
-    minimumRequirement: "说明输入输出比例",
+    minimumRequirement: "说明上下文窗口和月 Token",
     contractRequirement: "按消耗确认",
     permissionRequirement: "国内模型常规权限",
-    customerDescription: "适合长文本、知识处理和中文内容场景。",
-    adminNote: "缓存命中输入价格需单独确认。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "domestic-minimax",
-    category: "domestic",
-    name: "MiniMax",
-    isListed: true,
-    showPrice: true,
-    publicPrice: "2.1 / 8.4 元每百万 Tokens 参考",
-    internalCost: "MiniMax-M2.7",
-    priceType: "token",
-    minimumRequirement: "说明月消耗",
-    contractRequirement: "按消耗确认",
-    permissionRequirement: "国内模型常规权限",
-    customerDescription: "适合中文应用、内容生成和较低成本调用。",
-    adminNote: "缓存写入价格需另看。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "domestic-qwen",
-    category: "domestic",
-    name: "Qwen",
-    isListed: true,
-    showPrice: true,
-    publicPrice: "0.8-48 元/百万 Tokens 参考，按版本和上下文确认",
-    internalCost: "Qwen 3.5/3.6 plus 分段",
-    priceType: "token",
-    minimumRequirement: "说明上下文窗口和用量",
-    contractRequirement: "按消耗确认",
-    permissionRequirement: "国内模型常规权限",
-    customerDescription: "适合中文业务、工具调用和较大上下文需求。",
-    adminNote: "分 128K/256K/1M 区间。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "domestic-mimo",
-    category: "domestic",
-    name: "Mimo",
-    isListed: true,
-    showPrice: true,
-    publicPrice: "$0.5-$6 / 百万 Tokens 参考，按版本和上下文确认",
-    internalCost: "Mimo v2/v2.5 分段",
-    priceType: "token",
-    minimumRequirement: "说明上下文窗口和 Token Plan",
-    contractRequirement: "按消耗确认",
-    permissionRequirement: "国内模型常规权限",
-    customerDescription: "适合美元计价、长上下文和灵活 Token Plan 需求。",
-    adminNote: "部分计划不区分上下文。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "account-claude-code",
+    customerDescription,
+    internalCost: "源表：模型企业端渠道报价6月4日",
+    adminNote: "国内模型分段报价。"
+  })
+);
+
+const accountRows = [
+  ["account-chatgpt-plus-finished", "chatgpt", "ChatGPT", "ChatGpt plus 成品号", 118, "订阅消失按剩余天数退款；封号无法质保。", "有货"],
+  ["account-chatgpt-plus-recharge", "chatgpt", "ChatGPT", "ChatGpt plus 代充", 130, "订阅消失按剩余天数退款；封号无法质保。", "有货"],
+  ["account-chatgpt-pro-5x", "chatgpt", "ChatGPT", "ChatGpt pro 5x 代充/成品号", 750, "信用卡官方正价代充，同步官方售后，退款扣取20%手续费。", "现做/可代充"],
+  ["account-chatgpt-pro-20x", "chatgpt", "ChatGPT", "ChatGpt pro 20x 代充/成品号", 1300, "信用卡官方正价代充，同步官方售后，退款扣取20%手续费。", "现做/可代充"],
+  ["account-chatgpt-business", "chatgpt", "ChatGPT", "ChatGpt business 48个月成品号【2席位起】", 480, "官方充值，后续每月续费需换自己的卡支付；报价按2席位。", "有货"],
+  ["account-claude-pro", "claude", "Claude", "Claude pro 成品号/代充", 170, "质保首次登陆，验收账号无问题后售后结束。", "可代充"],
+  ["account-claude-max-x5", "claude", "Claude", "Claude MAX x5 成品号/代充", 800, "订阅消失按剩余天数退款；支持补差价升级；封号无法质保。", "有货"],
+  ["account-claude-max-x20", "claude", "Claude", "Claude MAX x20 成品号/代充", 1250, "订阅消失按剩余天数退款；封号无法质保。", "有货"],
+  ["account-gemini-pro-year-basic", "gemini", "Gemini", "gemini pro年会员【不包反重力】", 60, "质保首次登陆，验收账号无问题后售后结束。", "有货"],
+  ["account-gemini-pro-year-antigravity", "gemini", "Gemini", "gemini pro年会员【包反重力】", 90, "质保首次登陆，验收账号无问题后售后结束。", "有货"],
+  ["account-gemini-pro-cert", "gemini", "Gemini", "gemini pro 认证", 60, "质保认证登陆，验收账号无问题后售后结束。", "有货"],
+  ["account-supergroks-one-month", "supergroks", "SuperGroks", "SuperGroks-一月成品号", 70, "质保7天；订阅消失按剩余天数退款。", "有货"],
+  ["account-supergroks-one-month-recharge", "supergroks", "SuperGroks", "SuperGroks-一月成品号/代充", 120, "质保一个月；订阅消失按剩余天数退款；封号售后结束。", "有货"],
+  ["account-supergroks-two-month-recharge", "supergroks", "SuperGroks", "SuperGroks-两个月代充", 200, "质保两个月；订阅消失按剩余天数退款；封号售后结束。", "有货"]
+].map(([id, subCategory, subCategoryLabel, name, retailPrice, description, stock]) =>
+  product({
+    id,
     category: "accounts",
-    name: "Claude Code",
-    isListed: true,
-    showPrice: false,
-    publicPrice: "需咨询确认",
-    internalCost: "按账号状态维护",
-    priceType: "custom",
-    minimumRequirement: "说明团队人数和使用周期",
-    contractRequirement: "按账号类型确认",
-    permissionRequirement: "可能涉及地区和支付要求",
-    customerDescription: "适合开发团队和 Claude Code 使用需求。",
-    adminNote: "账号状态变化快，默认隐藏价格。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "account-codex",
-    category: "accounts",
-    name: "Codex",
-    isListed: true,
-    showPrice: false,
-    publicPrice: "需咨询确认",
-    internalCost: "按账号状态维护",
-    priceType: "custom",
-    minimumRequirement: "说明使用人数和开发场景",
-    contractRequirement: "按账号类型确认",
-    permissionRequirement: "可能涉及地区和订阅要求",
-    customerDescription: "适合 AI 编程、自动化开发和团队协作需求。",
-    adminNote: "避免承诺固定价格。",
-    updatedAt: "2026-06-05"
-  },
-  {
-    id: "account-kyc",
-    category: "accounts",
-    name: "KYC",
-    isListed: true,
-    showPrice: false,
-    publicPrice: "按平台和认证要求确认",
-    internalCost: "按平台维护",
-    priceType: "custom",
-    minimumRequirement: "说明平台、主体和认证目标",
-    contractRequirement: "按平台要求确认",
-    permissionRequirement: "需要真实认证材料和平台审核",
-    customerDescription: "适合平台认证、企业主体接入和账号权限开通。",
-    adminNote: "合规边界需人工确认。",
-    updatedAt: "2026-06-05"
-  }
+    subCategory,
+    subCategoryLabel,
+    name,
+    publicPrice: `${retailPrice}元/月`,
+    priceType: "per-use",
+    minimumRequirement: stock,
+    contractRequirement: "按账号类型和库存确认",
+    permissionRequirement: description,
+    customerDescription: description,
+    internalCost: `源表：成品代充业务代理价文档 / ${subCategoryLabel}`,
+    adminNote: `库存：${stock}`
+  })
+);
+
+export const defaultProducts = [
+  ...poolRows,
+  ...enterpriseProducts,
+  ...videoProducts,
+  ...domesticProducts,
+  ...accountRows
 ];

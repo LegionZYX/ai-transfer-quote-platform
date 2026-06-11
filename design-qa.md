@@ -33,6 +33,8 @@ Shared quote finder and admin configuration flows remain unchanged.
 - Clicking consultation / inquiry actions opens Quote Finder with the selected category and product preselected.
 - Admin configuration is gated by an administrator login.
 - Wrong administrator credentials are rejected, correct credentials open the admin console, and logout returns to the login screen.
+- Public navigation no longer exposes an admin configuration link.
+- Production admin access is host-gated for admin hostnames such as `admin.example.com` or `admin-project.vercel.app`; local `/admin` remains available only for development testing.
 - Desktop width has no horizontal overflow.
 - Mobile width has no horizontal overflow for both designs.
 - Existing quote and admin logic were not removed.
