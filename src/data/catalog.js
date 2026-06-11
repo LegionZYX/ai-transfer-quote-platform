@@ -16,7 +16,7 @@ export const categories = [
   {
     id: "video",
     label: "Seedance2.0",
-    summary: "满血线路 / 残血线路 / 海外满血线路",
+    summary: "Seedance2线路统一报价",
     description: "适合 Seedance2.0 视频生成，根据满血、残血、海外权限和签约要求匹配线路。"
   },
   {
@@ -122,44 +122,44 @@ const enterpriseProducts = [
 );
 
 const videoProducts = [
-  ["video-seedance2-full-1", "满血线路", "Seedance2 第一条满血线路", "9.8折起", "可随用随充", "普通权限"],
-  ["video-seedance2-full-2", "满血线路", "Seedance2 第二条满血线路", "9.5折起", "要求日消耗量3万以上", "普通权限"],
-  ["video-seedance2-limited", "残血线路", "Seedance2 第三条残血线路", "9.2折起", "适合能接受能力限制的客户", "不能过真人库；要求公司签约"],
-  ["video-seedance2-overseas", "海外满血线路", "Seedance2 第四条海外满血线路", "溢价20%起", "需明确海外使用场景", "有海外 NSFW 权限；低审查内容不能回流国内"]
-].map(([id, subCategoryLabel, name, publicPrice, minimumRequirement, permissionRequirement]) =>
+  ["video-seedance2-full-1", "Seedance2 满血线路", "9.8折起", "可随用随充", "普通权限"],
+  ["video-seedance2-full-2", "Seedance2 满血高消耗线路", "9.5折起", "要求日消耗量3万以上", "普通权限"],
+  ["video-seedance2-limited", "Seedance2 残血线路", "9.2折起", "适合能接受能力限制的客户", "不能过真人库；要求公司签约"],
+  ["video-seedance2-overseas", "Seedance2 海外满血线路", "溢价20%起", "需明确海外使用场景", "有海外 NSFW 权限；低审查内容不能回流国内"]
+].map(([id, name, publicPrice, minimumRequirement, permissionRequirement]) =>
   product({
     id,
     category: "video",
-    subCategory: subCategoryLabel,
-    subCategoryLabel,
+    subCategory: "seedance2-lines",
+    subCategoryLabel: "Seedance2线路",
     name,
     publicPrice,
     priceType: publicPrice.includes("溢价") ? "premium" : "discount",
     minimumRequirement,
     contractRequirement: permissionRequirement.includes("公司签约") ? "要求公司签约" : "按用量确认",
     permissionRequirement,
-    customerDescription: `${subCategoryLabel}，${minimumRequirement}。`,
+    customerDescription: `${name}，${minimumRequirement}。`,
     internalCost: "源表：模型企业端渠道报价6月4日",
     adminNote: permissionRequirement
   })
 );
 
 const domesticProducts = [
-  ["domestic-glm", "GLM", "GLM 5 / 5.1", "5折", "覆盖 glm-5、glm-5.1 的 0<Token≤32K 与 32K<Token≤200K 分段。"],
-  ["domestic-kimi", "Kimi", "Kimi K2.5 / K2.6", "5折", "适合长文本、知识处理和中文内容场景。"],
-  ["domestic-minimax", "MiniMax", "MiniMax-M2.7", "5折", "适合中文应用、内容生成和较低成本调用。"],
-  ["domestic-mimo", "Mimo", "Mimo v2 / v2.5", "5折", "覆盖 mimo-v2-pro、mimo-v2.5-pro 以及 Token Plan。"],
-  ["domestic-qwen", "Qwen", "Qwen 3.5 / 3.6 Plus", "5折", "覆盖 qwen3.5-plus 与 qwen3.6-plus 的 128K、256K、1M 分段。"]
-].map(([id, subCategoryLabel, name, publicPrice, customerDescription]) =>
+  ["domestic-glm", "GLM", "5折", "适合中文业务、知识处理和企业应用场景。"],
+  ["domestic-kimi", "Kimi", "5折", "适合长文本、知识处理和中文内容场景。"],
+  ["domestic-minimax", "MiniMax", "5折", "适合中文应用、内容生成和较低成本调用。"],
+  ["domestic-mimo", "Mimo", "5折", "适合国内模型调用和多场景应用接入。"],
+  ["domestic-qwen", "Qwen", "5折", "适合通用中文业务、应用开发和企业调用场景。"]
+].map(([id, name, publicPrice, customerDescription]) =>
   product({
     id,
     category: "domestic",
-    subCategory: subCategoryLabel,
-    subCategoryLabel,
+    subCategory: "domestic-lines",
+    subCategoryLabel: "国内模型线路",
     name,
     publicPrice,
-    priceType: "token",
-    minimumRequirement: "说明上下文窗口和月 Token",
+    priceType: "discount",
+    minimumRequirement: "说明使用场景和月消耗",
     contractRequirement: "按消耗确认",
     permissionRequirement: "国内模型常规权限",
     customerDescription,

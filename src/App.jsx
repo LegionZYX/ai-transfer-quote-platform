@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { categories, defaultProducts } from "./data/catalog";
 
-const PRODUCTS_KEY = "ai-transfer-products-v6";
+const PRODUCTS_KEY = "ai-transfer-products-v7";
 const HISTORY_KEY = "ai-transfer-update-history-v1";
 const TELEGRAM_KEY = "ai-transfer-telegram-v1";
 const ADMIN_SESSION_KEY = "ai-transfer-admin-session-v1";
