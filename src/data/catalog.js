@@ -4,8 +4,8 @@ export const categories = [
   {
     id: "pool",
     label: "号池类",
-    summary: "Claude Code号池 / OpenAI号池 / Gemini Vertex T3",
-    description: "适合 Claude Code、OpenAI、Gemini 等模型号池消耗，按模型和通道折扣确认。"
+    summary: "Claude号池 / OpenAI号池 / Gemini号池",
+    description: "适合 Claude、OpenAI、Gemini 等号池消耗，按通道折扣确认。"
   },
   {
     id: "enterprise",
@@ -69,23 +69,23 @@ function product({
 }
 
 const poolRows = [
-  ["pool-claude", "claude-code-pool", "Claude号池", "Claude号池", "2.11折", "适合 Claude 号池消耗，具体可用模型按当日线路确认。"],
-  ["pool-openai", "openai-pool", "OpenAI号池", "OpenAI号池", "0.42折", "适合 OpenAI 号池消耗，具体可用模型按当日线路确认。"],
-  ["pool-gemini", "gemini-vertex-t3", "Gemini号池", "Gemini号池", "5折", "适合 Gemini 号池消耗，具体可用模型按当日线路确认。"]
-].map(([id, subCategory, subCategoryLabel, name, publicPrice, customerDescription]) =>
+  ["pool-claude", "Claude号池", "2.11折", "适合 Claude 号池消耗，具体可用模型按当日线路确认。"],
+  ["pool-openai", "OpenAI号池", "0.42折", "适合 OpenAI 号池消耗，具体可用模型按当日线路确认。"],
+  ["pool-gemini", "Gemini号池", "5折", "适合 Gemini 号池消耗，具体可用模型按当日线路确认。"]
+].map(([id, name, publicPrice, customerDescription]) =>
   product({
     id,
     category: "pool",
-    subCategory,
-    subCategoryLabel,
+    subCategory: "pool-lines",
+    subCategoryLabel: "号池线路",
     name,
     publicPrice,
     priceType: "discount",
-    minimumRequirement: subCategoryLabel,
+    minimumRequirement: "号池线路",
     contractRequirement: "大量消耗可单独确认",
-    permissionRequirement: subCategory === "claude-code-pool" ? "不能外接，仅限 Claude Code 使用" : "按号池通道可用性确认",
+    permissionRequirement: "按号池通道可用性确认",
     customerDescription,
-    internalCost: `源表：模型企业端渠道报价6月4日 / ${subCategoryLabel}`,
+    internalCost: "源表：模型企业端渠道报价6月4日 / 号池线路",
     adminNote: "号池类前台参考价格只显示折扣。"
   })
 );

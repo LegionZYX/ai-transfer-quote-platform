@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { categories, defaultProducts } from "./data/catalog";
 
-const PRODUCTS_KEY = "ai-transfer-products-v10";
+const PRODUCTS_KEY = "ai-transfer-products-v11";
 const HISTORY_KEY = "ai-transfer-update-history-v1";
 const TELEGRAM_KEY = "ai-transfer-telegram-v1";
 const ADMIN_SESSION_KEY = "ai-transfer-admin-session-v1";
@@ -493,7 +493,7 @@ function WechatConsultModal({ product, onClose }) {
 
 function PremiumBrokerHome({ products, telegramHref, setDesignVersion, onQuote, setActiveView }) {
   const [activeBusiness, setActiveBusiness] = useState("pool");
-  const [activeSubCategory, setActiveSubCategory] = useState("claude-code-pool");
+  const [activeSubCategory, setActiveSubCategory] = useState("pool-lines");
   const [catalogSearch, setCatalogSearch] = useState("");
   const activeCategory = categoryById(activeBusiness);
   const activeProducts = products.filter((product) => product.category === activeBusiness);
