@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { categories, defaultProducts } from "./data/catalog";
 
-const PRODUCTS_KEY = "ai-transfer-products-v8";
+const PRODUCTS_KEY = "ai-transfer-products-v10";
 const HISTORY_KEY = "ai-transfer-update-history-v1";
 const TELEGRAM_KEY = "ai-transfer-telegram-v1";
 const ADMIN_SESSION_KEY = "ai-transfer-admin-session-v1";
@@ -88,11 +88,8 @@ function buildTelegramText({ category, products, demand }) {
     "",
     `分类：${category?.label ?? "未选择"}`,
     `意向业务：${productText}`,
-    `预计用量：${demand.usage || "未填写"}`,
+    `预计用量：${demand.usage || "未填写，请协助按用量确认"}`,
     `使用场景：${demand.scenario || "未填写"}`,
-    `公司签约：${demand.contract || "不确定"}`,
-    `官方账号需求：${demand.officialAccount || "不确定"}`,
-    `海外权限：${demand.overseas || "不确定"}`,
     `参考价格：${priceText}`,
     `其他说明：${demand.notes || "无"}`,
     "",
@@ -875,6 +872,8 @@ function QuoteFinder({
     .map((productId) => products.find((item) => item.id === productId))
     .filter((product) => product?.category === selectedCategory);
   const selectedCategoryItem = categoryById(selectedCategory);
+  const hasUsage = demand.usage.trim().length > 0;
+  const canSendTelegram = selectedProducts.length > 0 && hasUsage;
 
   function toggleProduct(productId) {
     setSelectedProductIds((current) => {
@@ -890,6 +889,13 @@ function QuoteFinder({
     const firstProduct = products.find((item) => item.category === categoryId);
     setSelectedCategory(categoryId);
     setSelectedProductIds(firstProduct ? [firstProduct.id] : []);
+  }
+
+  function handleTelegramSend(event) {
+    if (canSendTelegram) return;
+
+    event.preventDefault();
+    window.alert(selectedProducts.length === 0 ? "请先选择至少一个业务或线路。" : "请先填写预计用量，再发送咨询。");
   }
 
   return (
@@ -917,7 +923,8 @@ function QuoteFinder({
           </div>
         </Step>
 
-        <Step title="2. 选择业务 / 线路">
+        <Step title="2. 多选业务 / 线路">
+          <p className="step-hint">可同时选择多个业务，系统会把所有选择和预计用量一起生成咨询文案。</p>
           <div className="product-pills">
             {visibleProducts.map((item) => (
               <button
@@ -940,7 +947,7 @@ function QuoteFinder({
               <input
                 value={demand.usage}
                 onChange={(event) => setDemand({ ...demand, usage: event.target.value })}
-                placeholder="例如：每月 5000 万 Tokens / 每日 3 万次"
+                placeholder="例如：每月 5000 万 Tokens / 每日 3 万次 / 每月 200 条视频"
               />
             </label>
             <label>
@@ -951,27 +958,12 @@ function QuoteFinder({
                 placeholder="例如：企业客服、批量视频生成、AI 编程"
               />
             </label>
-            <SelectField
-              label="是否需要公司签约"
-              value={demand.contract}
-              onChange={(value) => setDemand({ ...demand, contract: value })}
-            />
-            <SelectField
-              label="是否需要官方账号"
-              value={demand.officialAccount}
-              onChange={(value) => setDemand({ ...demand, officialAccount: value })}
-            />
-            <SelectField
-              label="是否需要海外权限"
-              value={demand.overseas}
-              onChange={(value) => setDemand({ ...demand, overseas: value })}
-            />
             <label className="wide">
               <span>其他说明</span>
               <textarea
                 value={demand.notes}
                 onChange={(event) => setDemand({ ...demand, notes: event.target.value })}
-                placeholder="补充平台、地区、交付周期或其他限制"
+                placeholder="补充交付周期或其他限制"
               />
             </label>
           </div>
@@ -992,6 +984,10 @@ function QuoteFinder({
                 <dt>参考价格</dt>
                 <dd>{selectedProducts.length ? "按所选业务分别确认" : "请选择业务"}</dd>
               </div>
+              <div>
+                <dt>预计用量</dt>
+                <dd>{hasUsage ? demand.usage : "待填写，发送前需要确认"}</dd>
+              </div>
             </dl>
             <div className="selected-plan-list">
               {selectedProducts.map((product) => (
@@ -1001,7 +997,6 @@ function QuoteFinder({
                     <span>{getPublicPrice(product)}</span>
                   </div>
                   <p>{product.customerDescription}</p>
-                  <small>签约：{product.contractRequirement} · 权限：{product.permissionRequirement}</small>
                 </article>
               ))}
             </div>
@@ -1027,9 +1022,9 @@ function QuoteFinder({
                 <RefreshCw size={17} />
                 恢复默认
               </button>
-              <a className="primary-button" href={telegramHref} target="_blank" rel="noreferrer">
+              <a className="primary-button" href={telegramHref} target="_blank" rel="noreferrer" onClick={handleTelegramSend}>
                 <MessageCircle size={17} />
-                发送到 Telegram
+                确认并发送到 Telegram
               </a>
             </div>
           </div>
@@ -1045,19 +1040,6 @@ function Step({ title, children }) {
       <h2>{title}</h2>
       {children}
     </section>
-  );
-}
-
-function SelectField({ label, value, onChange }) {
-  return (
-    <label>
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option>不确定</option>
-        <option>是</option>
-        <option>否</option>
-      </select>
-    </label>
   );
 }
 

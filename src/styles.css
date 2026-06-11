@@ -499,6 +499,13 @@ main {
   font-size: 18px;
 }
 
+.step-hint {
+  margin: -6px 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
