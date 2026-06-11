@@ -4,7 +4,6 @@ import {
   Building2,
   CalendarDays,
   Check,
-  Copy,
   Cpu,
   Database,
   Eye,
@@ -36,6 +35,7 @@ const DEFAULT_TELEGRAM_USERNAME = "ailorenzo";
 const LEGACY_TELEGRAM_USERNAMES = ["AITransfer", "sanndpas", "legionxyz"];
 const DEFAULT_TELEGRAM_MESSAGE = "你好，我想咨询 AI 资源报价。";
 const COMMUNITY_URL = "https://t.me/+Jcxwvnyg6ecwNTlk";
+const USAGE_OPTIONS = ["1万以下/天", "1万到5万/天", "5万到10万/天"];
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -89,9 +89,8 @@ function buildTelegramText({ category, products, demand }) {
     `分类：${category?.label ?? "未选择"}`,
     `意向业务：${productText}`,
     `预计用量：${demand.usage || "未填写，请协助按用量确认"}`,
-    `使用场景：${demand.scenario || "未填写"}`,
     `参考价格：${priceText}`,
-    `其他说明：${demand.notes || "无"}`,
+    `需求说明：${demand.notes || "无"}`,
     "",
     "请帮我确认具体报价和开通方式。"
   ].join("\n");
@@ -111,52 +110,6 @@ function buildTelegramHref(text, username) {
   if (target) return `https://t.me/${target}?text=${encodeURIComponent(text)}`;
 
   return `https://t.me/share/url?url=${encodeURIComponent("https://aitransfer.cyou")}&text=${encodeURIComponent(text)}`;
-}
-
-async function copyTextToClipboard(text) {
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      // Fall back for browsers or embedded views that block Clipboard API writes.
-    }
-  }
-
-  const editor = document.querySelector(".telegram-editor");
-  if (editor) {
-    editor.focus();
-    editor.select();
-    editor.setSelectionRange(0, editor.value.length);
-
-    try {
-      if (document.execCommand("copy")) return true;
-    } catch {
-      // Try the detached textarea fallback below.
-    }
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.top = "-9999px";
-  textarea.style.left = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.select();
-  textarea.setSelectionRange(0, textarea.value.length);
-
-  try {
-    const copied = document.execCommand("copy");
-    if (!copied && editor) {
-      editor.focus();
-      editor.select();
-      editor.setSelectionRange(0, editor.value.length);
-    }
-    return copied;
-  } finally {
-    document.body.removeChild(textarea);
-  }
 }
 
 function App() {
@@ -181,9 +134,6 @@ function App() {
     overseas: "不确定",
     notes: ""
   });
-  const [telegramText, setTelegramText] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [copyFailed, setCopyFailed] = useState(false);
 
   useEffect(() => writeStorage(PRODUCTS_KEY, products), [products]);
   useEffect(() => writeStorage(HISTORY_KEY, history), [history]);
@@ -208,14 +158,8 @@ function App() {
     () => buildTelegramText({ category, products: selectedProducts, demand }),
     [category, selectedProducts, demand]
   );
-  const telegramHref = buildTelegramHref(telegramText || generatedTelegramText, telegram.username);
+  const telegramHref = buildTelegramHref(generatedTelegramText, telegram.username);
   const homeTelegramHref = buildTelegramHref(DEFAULT_TELEGRAM_MESSAGE, telegram.username);
-
-  useEffect(() => {
-    setTelegramText(generatedTelegramText);
-    setCopied(false);
-    setCopyFailed(false);
-  }, [generatedTelegramText]);
 
   function setActiveView(view) {
     if (isAdminHost()) {
@@ -295,16 +239,6 @@ function App() {
     ]);
   }
 
-  async function copyTelegramText() {
-    const ok = await copyTextToClipboard(telegramText);
-    setCopied(ok);
-    setCopyFailed(!ok);
-    window.setTimeout(() => {
-      setCopied(false);
-      setCopyFailed(false);
-    }, 1600);
-  }
-
   function handleAdminLogin(username, password) {
     if (username.trim() === ADMIN_USER && password === ADMIN_PASSWORD) {
       window.sessionStorage.setItem(ADMIN_SESSION_KEY, "ok");
@@ -346,15 +280,9 @@ function App() {
             selectedProductIds={selectedProductIds}
             demand={demand}
             telegramHref={telegramHref}
-            telegramText={telegramText}
-            generatedTelegramText={generatedTelegramText}
-            copied={copied}
-            copyFailed={copyFailed}
             setDemand={setDemand}
-            setTelegramText={setTelegramText}
             setSelectedCategory={selectCategory}
             setSelectedProductIds={setSelectedProductIds}
-            copyTelegramText={copyTelegramText}
             onClose={() => setQuoteModalOpen(false)}
           />
         )}
@@ -591,7 +519,7 @@ function PremiumBrokerHome({ products, telegramHref, setDesignVersion, onQuote, 
                 <span>{index + 1}</span>
                 <div>
                   <strong>{item}</strong>
-                  <p>{index === 0 ? "选择您需要的 AI 资源类型" : index === 1 ? "告诉我们使用场景与需求" : "一键生成需求文案发送给我们"}</p>
+                  <p>{index === 0 ? "选择您需要的 AI 资源类型" : index === 1 ? "选择每日用量并填写需求" : "一键生成需求文案发送给我们"}</p>
                 </div>
               </div>
             ))}
@@ -822,7 +750,7 @@ function MarketDashboardHome({ products, telegramHref, setDesignVersion, onQuote
           <h2>快速报价流程</h2>
           <div className="builder-steps">
             <span className="active">1 选择分类</span>
-            <span>2 填写需求</span>
+            <span>2 选择用量</span>
             <span>3 生成 Telegram 文案</span>
           </div>
           <div className="builder-preview">
@@ -831,19 +759,19 @@ function MarketDashboardHome({ products, telegramHref, setDesignVersion, onQuote
             <button type="button" onClick={() => onQuote(activeBusiness, activeProduct?.id)}>进入报价选项</button>
           </div>
           <label>
-            <span>使用场景</span>
+            <span>需求参考</span>
             <input readOnly value={activeProduct?.customerDescription ?? "选择左侧产品后自动生成"} />
           </label>
           <label>
-            <span>预计用量</span>
+            <span>用量参考</span>
             <input readOnly value={activeProduct?.minimumRequirement ?? "按具体用量确认"} />
           </label>
           <div className="builder-message">
             <strong>生成的 Telegram 文案</strong>
-            <p>您好，我想咨询 AI 资源报价，需求如下：分类{categoryById(activeBusiness)?.label}，产品 {activeProduct?.name}，参考价格 {getPublicPrice(activeProduct)}，请帮我确认可用方案。</p>
+            <p>您好，我想咨询 AI 资源报价，需求如下：分类{categoryById(activeBusiness)?.label}，业务 {activeProduct?.name}，参考价格 {getPublicPrice(activeProduct)}，请帮我确认可用方案。</p>
           </div>
           <button className="neon-button full" type="button" onClick={() => onQuote(activeBusiness, activeProduct?.id)}>
-            咨询该产品价格
+            咨询该业务价格
           </button>
         </aside>
       </section>
@@ -868,15 +796,9 @@ function QuoteFinder({
   selectedProductIds,
   demand,
   telegramHref,
-  telegramText,
-  generatedTelegramText,
-  copied,
-  copyFailed,
   setDemand,
-  setTelegramText,
   setSelectedCategory,
   setSelectedProductIds,
-  copyTelegramText,
   onClose
 }) {
   const visibleProducts = products.filter((item) => item.category === selectedCategory);
@@ -956,7 +878,7 @@ function QuoteFinder({
         </Step>
 
         <Step title="2. 多选业务 / 线路">
-          <p className="step-hint">可同时选择多个业务，系统会把所有选择和预计用量一起生成咨询文案。</p>
+          <p className="step-hint">可同时选择多个业务，系统会把选择结果和用量一起生成咨询文案。</p>
           <div className="product-pills">
             {visibleProducts.map((item) => (
               <button
@@ -973,29 +895,28 @@ function QuoteFinder({
         </Step>
 
         <Step title="3. 填写需求">
-          <div className="form-grid">
-            <label>
+          <div className="quick-demand">
+            <div>
               <span>预计用量</span>
-              <input
-                value={demand.usage}
-                onChange={(event) => setDemand({ ...demand, usage: event.target.value })}
-                placeholder="例如：每月 5000 万 Tokens / 每日 3 万次 / 每月 200 条视频"
-              />
-            </label>
-            <label>
-              <span>使用场景</span>
-              <input
-                value={demand.scenario}
-                onChange={(event) => setDemand({ ...demand, scenario: event.target.value })}
-                placeholder="例如：企业客服、批量视频生成、AI 编程"
-              />
-            </label>
+              <div className="usage-options" role="group" aria-label="预计用量">
+                {USAGE_OPTIONS.map((option) => (
+                  <button
+                    className={demand.usage === option ? "usage-option active" : "usage-option"}
+                    type="button"
+                    key={option}
+                    onClick={() => setDemand({ ...demand, usage: option })}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
             <label className="wide">
-              <span>其他说明</span>
+              <span>填写需求</span>
               <textarea
                 value={demand.notes}
                 onChange={(event) => setDemand({ ...demand, notes: event.target.value })}
-                placeholder="补充交付周期或其他限制"
+                placeholder="简单写你的用途、平台、交付周期或其他限制"
               />
             </label>
           </div>
@@ -1037,23 +958,10 @@ function QuoteFinder({
           <div className="telegram-box">
             <div className="telegram-head">
               <MessageCircle size={18} />
-              <strong>Telegram 咨询文案</strong>
+              <strong>发送咨询</strong>
             </div>
-            <textarea
-              className="telegram-editor"
-              value={telegramText}
-              onChange={(event) => setTelegramText(event.target.value)}
-              aria-label="可编辑的 Telegram 咨询文案"
-            />
+            <p className="telegram-send-note">系统会自动整理你选择的业务、用量和需求，并带到 Telegram 咨询消息里。</p>
             <div className="action-row">
-              <button className="ghost-button" type="button" onClick={copyTelegramText}>
-                {copied ? <Check size={17} /> : <Copy size={17} />}
-                {copied ? "已复制" : copyFailed ? "复制失败" : "复制文案"}
-              </button>
-              <button className="ghost-button" type="button" onClick={() => setTelegramText(generatedTelegramText)}>
-                <RefreshCw size={17} />
-                恢复默认
-              </button>
               <a className="primary-button" href={telegramHref} target="_blank" rel="noreferrer" onClick={handleTelegramSend}>
                 <MessageCircle size={17} />
                 确认并发送到 Telegram

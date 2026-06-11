@@ -605,6 +605,43 @@ main {
   gap: 14px;
 }
 
+.quick-demand {
+  display: grid;
+  gap: 14px;
+}
+
+.quick-demand > div,
+.quick-demand label {
+  display: grid;
+  gap: 8px;
+}
+
+.quick-demand span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.usage-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.usage-option {
+  min-height: 42px;
+  border: 1px solid rgba(16, 19, 22, 0.14);
+  border-radius: 7px;
+  background: #fffefa;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.usage-option.active {
+  border-color: rgba(29, 127, 101, 0.45);
+  background: rgba(29, 127, 101, 0.11);
+}
+
 label {
   display: grid;
   gap: 8px;
@@ -2197,6 +2234,10 @@ dd {
   .quote-modal-close {
     top: 8px;
     margin: 10px 10px -46px 0;
+  }
+
+  .usage-options {
+    grid-template-columns: 1fr;
   }
 
   .hero-console {
