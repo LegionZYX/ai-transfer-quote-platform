@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { categories, defaultProducts } from "./data/catalog";
 
-const PRODUCTS_KEY = "ai-transfer-products-v7";
+const PRODUCTS_KEY = "ai-transfer-products-v8";
 const HISTORY_KEY = "ai-transfer-update-history-v1";
 const TELEGRAM_KEY = "ai-transfer-telegram-v1";
 const ADMIN_SESSION_KEY = "ai-transfer-admin-session-v1";
@@ -70,7 +70,7 @@ function categoryById(id) {
 }
 
 function getPublicPrice(product) {
-  if (!product) return "请选择产品";
+  if (!product) return "请选择业务";
   return product.showPrice ? product.publicPrice : "需咨询确认";
 }
 
@@ -87,7 +87,7 @@ function buildTelegramText({ category, products, demand }) {
     "你好，我想咨询 AI 资源报价。",
     "",
     `分类：${category?.label ?? "未选择"}`,
-    `产品：${productText}`,
+    `意向业务：${productText}`,
     `预计用量：${demand.usage || "未填写"}`,
     `使用场景：${demand.scenario || "未填写"}`,
     `公司签约：${demand.contract || "不确定"}`,
@@ -886,13 +886,19 @@ function QuoteFinder({
     });
   }
 
+  function chooseCategory(categoryId) {
+    const firstProduct = products.find((item) => item.category === categoryId);
+    setSelectedCategory(categoryId);
+    setSelectedProductIds(firstProduct ? [firstProduct.id] : []);
+  }
+
   return (
     <section className="workspace-layout">
       <div className="quote-panel">
         <div className="section-heading compact">
           <span>Quote Finder</span>
           <h1>寻找适合你的 AI 资源报价</h1>
-          <p>选择分类和具体需求，系统会生成参考方案和可发送的 Telegram 咨询文案。</p>
+          <p>选择业务大类和关键需求，系统会生成参考方案和可发送的 Telegram 咨询文案。</p>
         </div>
 
         <Step title="1. 选择分类">
@@ -902,7 +908,7 @@ function QuoteFinder({
                 className={selectedCategory === item.id ? "choice active" : "choice"}
                 type="button"
                 key={item.id}
-                onClick={() => setSelectedCategory(item.id)}
+                onClick={() => chooseCategory(item.id)}
               >
                 <strong>{item.label}</strong>
                 <span>{item.summary}</span>
@@ -911,7 +917,7 @@ function QuoteFinder({
           </div>
         </Step>
 
-        <Step title="2. 选择产品">
+        <Step title="2. 选择业务 / 线路">
           <div className="product-pills">
             {visibleProducts.map((item) => (
               <button
@@ -965,7 +971,7 @@ function QuoteFinder({
               <textarea
                 value={demand.notes}
                 onChange={(event) => setDemand({ ...demand, notes: event.target.value })}
-                placeholder="补充平台、地区、模型版本、交付周期或其他限制"
+                placeholder="补充平台、地区、交付周期或其他限制"
               />
             </label>
           </div>
@@ -976,7 +982,7 @@ function QuoteFinder({
         <div className="sticky-panel">
           <div className="plan-card">
             <span className="tag">参考方案</span>
-            <h2>{selectedProducts.length ? `${selectedProducts.length} 个产品已选` : "请选择产品"}</h2>
+            <h2>{selectedProducts.length ? `${selectedProducts.length} 个业务已选` : "请选择业务"}</h2>
             <dl>
               <div>
                 <dt>分类</dt>
@@ -984,7 +990,7 @@ function QuoteFinder({
               </div>
               <div>
                 <dt>参考价格</dt>
-                <dd>{selectedProducts.length ? "按所选产品分别确认" : "请选择产品"}</dd>
+                <dd>{selectedProducts.length ? "按所选业务分别确认" : "请选择业务"}</dd>
               </div>
             </dl>
             <div className="selected-plan-list">
