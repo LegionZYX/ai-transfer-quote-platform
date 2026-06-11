@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { categories, defaultProducts } from "./data/catalog";
 
-const PRODUCTS_KEY = "ai-transfer-products-v5";
+const PRODUCTS_KEY = "ai-transfer-products-v6";
 const HISTORY_KEY = "ai-transfer-update-history-v1";
 const TELEGRAM_KEY = "ai-transfer-telegram-v1";
 const ADMIN_SESSION_KEY = "ai-transfer-admin-session-v1";
@@ -174,7 +174,7 @@ function App() {
   const [adminAuthed, setAdminAuthed] = useState(() => window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "ok");
   const [designVersion, setDesignVersion] = useState("premium");
   const [selectedCategory, setSelectedCategory] = useState("pool");
-  const [selectedProductIds, setSelectedProductIds] = useState(["pool-claude-opus-4-7"]);
+  const [selectedProductIds, setSelectedProductIds] = useState(["pool-claude"]);
   const [demand, setDemand] = useState({
     usage: "",
     scenario: "",
@@ -718,7 +718,7 @@ function PremiumBrokerHome({ products, telegramHref, setDesignVersion, onQuote, 
 function MarketDashboardHome({ products, telegramHref, setDesignVersion, onQuote, setActiveView }) {
   const [activeBusiness, setActiveBusiness] = useState("pool");
   const activeProducts = products.filter((product) => product.category === activeBusiness);
-  const [activeProductId, setActiveProductId] = useState(activeProducts[0]?.id ?? "pool-claude-opus-4-7");
+  const [activeProductId, setActiveProductId] = useState(activeProducts[0]?.id ?? "pool-claude");
   const activeProduct = products.find((product) => product.id === activeProductId) ?? activeProducts[0];
 
   useEffect(() => {

@@ -69,25 +69,9 @@ function product({
 }
 
 const poolRows = [
-  ["pool-claude-opus-4-7", "claude-code-pool", "Claude Code号池", "claude-opus-4-7", "2.11折", "官方输入 $5/M，输出 $25/M"],
-  ["pool-claude-opus-4-6", "claude-code-pool", "Claude Code号池", "claude-opus-4-6", "2.11折", "官方输入 $5/M，输出 $25/M"],
-  ["pool-claude-sonnet-4-6", "claude-code-pool", "Claude Code号池", "claude-sonnet-4-6", "2.11折", "官方输入 $3/M，输出 $15/M"],
-  ["pool-claude-opus-4-5", "claude-code-pool", "Claude Code号池", "claude-opus-4-5-20251101", "2.11折", "官方输入 $5/M，输出 $25/M"],
-  ["pool-claude-haiku-4-5", "claude-code-pool", "Claude Code号池", "claude-haiku-4-5-20251001", "2.11折", "官方输入 $1/M，输出 $5/M"],
-  ["pool-claude-sonnet-4-5", "claude-code-pool", "Claude Code号池", "claude-sonnet-4-5-20250929", "2.11折", "官方输入 $3/M，输出 $15/M"],
-  ["pool-openai-gpt-5-5", "openai-pool", "OpenAI号池", "gpt-5.5", "0.42折", "官方输入 $5/M，输出 $30/M"],
-  ["pool-openai-gpt-5-4", "openai-pool", "OpenAI号池", "gpt-5.4", "0.42折", "官方输入 $2.5/M，输出 $15/M"],
-  ["pool-openai-gpt-5-4-mini", "openai-pool", "OpenAI号池", "gpt-5.4-mini", "0.42折", "官方输入 $0.75/M，输出 $4.5/M"],
-  ["pool-openai-gpt-5-3-codex", "openai-pool", "OpenAI号池", "gpt-5.3-codex", "0.42折", "官方输入 $1.75/M，输出 $14/M"],
-  ["pool-openai-gpt-5-3-codex-spark", "openai-pool", "OpenAI号池", "gpt-5.3-codex-spark", "0.42折", "官方输入 $2.5/M，输出 $15/M"],
-  ["pool-gemini-2-5-flash", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-2.5-flash", "5折", "官方输入 $0.3/M，输出 $2.5/M"],
-  ["pool-gemini-2-5-flash-image", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-2.5-flash-image-preview(Nano Banana)", "5折", "官方输入 $0.039/M，图片按项确认"],
-  ["pool-gemini-2-5-pro", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-2.5-pro", "5折", "官方输入 $1.25/M，输出 $10/M"],
-  ["pool-gemini-3-flash-preview", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-3-flash-preview", "5折", "官方输入 $0.5/M，输出 $3/M"],
-  ["pool-gemini-3-pro-image", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-3-pro-image-preview(Nano Banana Pro)", "5折", "官方输入 $0.2/M，图片按项确认"],
-  ["pool-gemini-3-pro-preview", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-3-pro-preview", "5折", "官方输入 $2/M，输出 $12/M"],
-  ["pool-gemini-3-1-pro-preview", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-3.1-pro-preview", "5折", "官方输入 $2/M，输出 $12/M"],
-  ["pool-gemini-3-1-flash-image", "gemini-vertex-t3", "Gemini Vertex T3", "gemini-3.1-flash-image-preview (Nano Banana 2)", "5折", "官方输入 $0.101/M，图片按项确认"]
+  ["pool-claude", "claude-code-pool", "Claude号池", "Claude号池", "2.11折", "适合 Claude 号池消耗，具体可用模型按当日线路确认。"],
+  ["pool-openai", "openai-pool", "OpenAI号池", "OpenAI号池", "0.42折", "适合 OpenAI 号池消耗，具体可用模型按当日线路确认。"],
+  ["pool-gemini", "gemini-vertex-t3", "Gemini号池", "Gemini号池", "5折", "适合 Gemini 号池消耗，具体可用模型按当日线路确认。"]
 ].map(([id, subCategory, subCategoryLabel, name, publicPrice, customerDescription]) =>
   product({
     id,
