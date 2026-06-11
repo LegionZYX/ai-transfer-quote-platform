@@ -172,6 +172,7 @@ function App() {
   const [designVersion, setDesignVersion] = useState("premium");
   const [selectedCategory, setSelectedCategory] = useState("pool");
   const [selectedProductIds, setSelectedProductIds] = useState(["pool-claude"]);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [demand, setDemand] = useState({
     usage: "",
     scenario: "",
@@ -222,6 +223,15 @@ function App() {
       return;
     }
 
+    if (view === "quote") {
+      setQuoteModalOpen(true);
+      setActiveViewState("home");
+      if (window.location.pathname !== "/") {
+        window.history.pushState({}, "", "/");
+      }
+      return;
+    }
+
     setActiveViewState(view);
 
     if (window.location.pathname !== "/") {
@@ -235,7 +245,7 @@ function App() {
       : listedProducts.find((item) => item.category === categoryId);
     setSelectedCategory(categoryId);
     setSelectedProductIds(nextProduct ? [nextProduct.id] : []);
-    setActiveView("quote");
+    setQuoteModalOpen(true);
   }
 
   function updateProduct(productId, patch) {
@@ -328,7 +338,7 @@ function App() {
             setActiveView={setActiveView}
           />
         )}
-        {activeView === "quote" && (
+        {quoteModalOpen && (
           <QuoteFinder
             categories={categories}
             products={listedProducts}
@@ -345,6 +355,7 @@ function App() {
             setSelectedCategory={selectCategory}
             setSelectedProductIds={setSelectedProductIds}
             copyTelegramText={copyTelegramText}
+            onClose={() => setQuoteModalOpen(false)}
           />
         )}
         {activeView === "admin" && (
@@ -865,7 +876,8 @@ function QuoteFinder({
   setTelegramText,
   setSelectedCategory,
   setSelectedProductIds,
-  copyTelegramText
+  copyTelegramText,
+  onClose
 }) {
   const visibleProducts = products.filter((item) => item.category === selectedCategory);
   const selectedProducts = selectedProductIds
@@ -898,12 +910,32 @@ function QuoteFinder({
     window.alert(selectedProducts.length === 0 ? "请先选择至少一个业务或线路。" : "请先填写预计用量，再发送咨询。");
   }
 
+  useEffect(() => {
+    function handleKeydown(event) {
+      if (event.key === "Escape") onClose();
+    }
+
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, [onClose]);
+
   return (
-    <section className="workspace-layout">
-      <div className="quote-panel">
+    <div className="quote-modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section
+        className="quote-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="quote-modal-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <button className="quote-modal-close" type="button" onClick={onClose} aria-label="关闭咨询弹窗">
+          ×
+        </button>
+        <div className="workspace-layout quote-modal-layout">
+          <div className="quote-panel">
         <div className="section-heading compact">
           <span>Quote Finder</span>
-          <h1>寻找适合你的 AI 资源报价</h1>
+          <h1 id="quote-modal-title">快速选择并发送咨询</h1>
           <p>选择业务大类和关键需求，系统会生成参考方案和可发送的 Telegram 咨询文案。</p>
         </div>
 
@@ -968,10 +1000,10 @@ function QuoteFinder({
             </label>
           </div>
         </Step>
-      </div>
+          </div>
 
-      <aside className="result-panel">
-        <div className="sticky-panel">
+          <aside className="result-panel">
+            <div className="sticky-panel">
           <div className="plan-card">
             <span className="tag">参考方案</span>
             <h2>{selectedProducts.length ? `${selectedProducts.length} 个业务已选` : "请选择业务"}</h2>
@@ -1028,9 +1060,11 @@ function QuoteFinder({
               </a>
             </div>
           </div>
+            </div>
+          </aside>
         </div>
-      </aside>
-    </section>
+      </section>
+    </div>
   );
 }
 
