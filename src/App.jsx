@@ -21,6 +21,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  Users,
   Zap
 } from "lucide-react";
 import { categories, defaultProducts } from "./data/catalog";
@@ -31,9 +32,10 @@ const TELEGRAM_KEY = "ai-transfer-telegram-v1";
 const ADMIN_SESSION_KEY = "ai-transfer-admin-session-v1";
 const ADMIN_USER = import.meta.env.VITE_ADMIN_USER || "admin";
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "aitransfer2026";
-const DEFAULT_TELEGRAM_USERNAME = "legionxyz";
-const LEGACY_TELEGRAM_USERNAMES = ["AITransfer", "sanndpas"];
+const DEFAULT_TELEGRAM_USERNAME = "ailorenzo";
+const LEGACY_TELEGRAM_USERNAMES = ["AITransfer", "sanndpas", "legionxyz"];
 const DEFAULT_TELEGRAM_MESSAGE = "你好，我想咨询 AI 资源报价。";
+const COMMUNITY_URL = "https://t.me/+Jcxwvnyg6ecwNTlk";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -557,6 +559,10 @@ function PremiumBrokerHome({ products, telegramHref, setDesignVersion, onQuote, 
               <MessageCircle size={18} />
               Telegram 咨询
             </a>
+            <a className="dark-outline-button" href={COMMUNITY_URL} target="_blank" rel="noreferrer">
+              <Users size={18} />
+              加入社群
+            </a>
           </div>
           <div className="premium-stats">
             <div><ShieldCheck size={20} /><strong>99.9%</strong><span>服务可用性</span></div>
@@ -739,6 +745,10 @@ function MarketDashboardHome({ products, telegramHref, setDesignVersion, onQuote
             <a className="blue-outline-button" href={telegramHref} target="_blank" rel="noreferrer">
               <MessageCircle size={18} />
               Telegram 咨询
+            </a>
+            <a className="blue-outline-button" href={COMMUNITY_URL} target="_blank" rel="noreferrer">
+              <Users size={18} />
+              加入社群
             </a>
           </div>
           <div className="market-badges">
@@ -1133,7 +1143,7 @@ function Admin({ products, history, telegram, updateProduct, setTelegram, resetD
           <input
             value={telegram.username}
             onChange={(event) => setTelegram({ username: event.target.value })}
-            placeholder="例如：legionxyz"
+            placeholder="例如：ailorenzo"
           />
         </label>
         <button className="ghost-button" type="button" onClick={resetDemoData}>
